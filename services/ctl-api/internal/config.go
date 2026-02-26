@@ -128,38 +128,38 @@ type Config struct {
 	GracefulShutdownTimeout time.Duration `config:"graceful_shutdown_timeout" validate:"required"`
 
 	// psql connection parameters
-	DBName        string `config:"db_name" validate:"required"`
-	DBHost        string `config:"db_host" validate:"required"`
-	DBPort        string `config:"db_port" validate:"required"`
-	DBSSLMode     string `config:"db_ssl_mode" validate:"required"`
-	DBPassword    string `config:"db_password"`
-	DBUser        string `config:"db_user" validate:"required"`
+	DBName        string `config:"db_name" validate:"required" preflight:"rds"`
+	DBHost        string `config:"db_host" validate:"required" preflight:"rds"`
+	DBPort        string `config:"db_port" validate:"required" preflight:"rds"`
+	DBSSLMode     string `config:"db_ssl_mode" validate:"required" preflight:"rds"`
+	DBPassword    string `config:"db_password" preflight:"rds"`
+	DBUser        string `config:"db_user" validate:"required" preflight:"rds"`
 	DBZapLog      bool   `config:"db_use_zap"`
-	DBUseIAM      bool   `config:"db_use_iam"`
-	DBRegion      string `config:"db_region" validate:"required"`
+	DBUseIAM      bool   `config:"db_use_iam" preflight:"rds"`
+	DBRegion      string `config:"db_region" validate:"required" preflight:"rds"`
 	CloudProvider string `config:"cloud_provider"`
 	DBLogQueries  bool   `config:"db_log_queries"`
 
 	// clickhouse connection parameters
-	ClickhouseDBName         string        `config:"clickhouse_db_name" validate:"required"`
-	ClickhouseDBHost         string        `config:"clickhouse_db_host" validate:"required"`
-	ClickhouseDBUser         string        `config:"clickhouse_db_user" validate:"required"`
-	ClickhouseDBPassword     string        `config:"clickhouse_db_password" validate:"required"`
-	ClickhouseDBPort         string        `config:"clickhouse_db_port" validate:"required"`
-	ClickhouseDBUseTLS       bool          `config:"clickhouse_db_use_tls"`
-	ClickhouseDBReadTimeout  time.Duration `config:"clickhouse_db_read_timeout" validate:"required"`
-	ClickhouseDBWriteTimeout time.Duration `config:"clickhouse_db_write_timeout" validate:"required"`
-	ClickhouseDBDialTimeout  time.Duration `config:"clickhouse_db_dial_timeout" validate:"required"`
+	ClickhouseDBName         string        `config:"clickhouse_db_name" validate:"required" preflight:"clickhouse"`
+	ClickhouseDBHost         string        `config:"clickhouse_db_host" validate:"required" preflight:"clickhouse"`
+	ClickhouseDBUser         string        `config:"clickhouse_db_user" validate:"required" preflight:"clickhouse"`
+	ClickhouseDBPassword     string        `config:"clickhouse_db_password" validate:"required" preflight:"clickhouse"`
+	ClickhouseDBPort         string        `config:"clickhouse_db_port" validate:"required" preflight:"clickhouse"`
+	ClickhouseDBUseTLS       bool          `config:"clickhouse_db_use_tls" preflight:"clickhouse"`
+	ClickhouseDBReadTimeout  time.Duration `config:"clickhouse_db_read_timeout" validate:"required" preflight:"clickhouse"`
+	ClickhouseDBWriteTimeout time.Duration `config:"clickhouse_db_write_timeout" validate:"required" preflight:"clickhouse"`
+	ClickhouseDBDialTimeout  time.Duration `config:"clickhouse_db_dial_timeout" validate:"required" preflight:"clickhouse"`
 
 	// temporal configuration
-	TemporalHost                          string `config:"temporal_host"  validate:"required"`
+	TemporalHost                          string `config:"temporal_host"  validate:"required" preflight:"temporal"`
 	TemporalStickyWorkflowCacheSize       int    `config:"temporal_sticky_workflow_cache_size"`
 	TemporalDataConverterLargePayloadSize int    `config:"temporal_dataconverter_large_payload_size"`
 	TemporalWorkflowFailurePanic          bool   `config:"temporal_workflow_failure_panic"`
 
 	// github configuration
-	GithubAppID            string `config:"github_app_id" validate:"required"`
-	GithubAppKey           string `config:"github_app_key" validate:"required"`
+	GithubAppID            string `config:"github_app_id" validate:"required" preflight:"github"`
+	GithubAppKey           string `config:"github_app_key" validate:"required" preflight:"github"`
 	GithubAppKeySecretName string `config:"github_app_key_secret_name" validate:"required"`
 
 	// base urls for filling in various fields on objects
@@ -173,22 +173,22 @@ type Config struct {
 	AdminDashboardMiddlewares []string `config:"admin_dashboard_middlewares"`
 
 	// Nuon Auth Config
-	NuonAuthSessionKey     string   `config:"nuon_auth_session_key"`
+	NuonAuthSessionKey     string   `config:"nuon_auth_session_key" preflight:"nuon-auth"`
 	NuonAuthSessionTTL     int      `config:"nuon_auth_session_ttl"`
 	NuonAuthAllowedDomains []string `config:"nuon_auth_allowed_domains"` // domains from which emails can register
 	NuonAuthAllowAllUsers  bool     `config:"nuon_auth_allow_all_users"` // if true, any user with an allowedDomain can sign in
 
 	// Nuon Auth: Default Provider ConfigS
-	NuonAuthProviderType string `config:"nuon_auth_provider_type"` // NOTE: becomes required after auth is in GA
-	NuonAuthClientID     string `config:"nuon_auth_client_id"`
-	NuonAuthClientSecret string `config:"nuon_auth_client_secret"`
-	NuonAuthIssuerURL    string `config:"nuon_auth_issuer_url"`
-	NuonAuthRedirectURL  string `config:"nuon_auth_redirect_url"`
+	NuonAuthProviderType string `config:"nuon_auth_provider_type" preflight:"nuon-auth"` // NOTE: becomes required after auth is in GA
+	NuonAuthClientID     string `config:"nuon_auth_client_id" preflight:"nuon-auth"`
+	NuonAuthClientSecret string `config:"nuon_auth_client_secret" preflight:"nuon-auth"`
+	NuonAuthIssuerURL    string `config:"nuon_auth_issuer_url" preflight:"nuon-auth"`
+	NuonAuthRedirectURL  string `config:"nuon_auth_redirect_url" preflight:"nuon-auth"`
 
 	// auth 0 config
-	Auth0IssuerURL string `config:"auth0_issuer_url" validate:"required"`
-	Auth0Audience  string `config:"auth0_audience" validate:"required"`
-	Auth0ClientID  string `config:"auth0_client_id" validate:"required"`
+	Auth0IssuerURL string `config:"auth0_issuer_url" validate:"required" preflight:"auth0"`
+	Auth0Audience  string `config:"auth0_audience" validate:"required" preflight:"auth0"`
+	Auth0ClientID  string `config:"auth0_client_id" validate:"required" preflight:"auth0"`
 
 	// links
 	AppURL        string `config:"app_url" validate:"required"`
@@ -228,12 +228,12 @@ type Config struct {
 	RunnerDefaultSupportIAMRole                string `config:"runner_default_support_iam_role_arn"`
 
 	// configuration for managing cloud infra for orgs, apps and installs
-	ManagementAccountID string `config:"management_account_id" validate:"required"`
+	ManagementIAMRoleARN string `config:"management_iam_role_arn" validate:"required" preflight:"aws"`
 
 	// AWS management (not required for GCP)
-	ManagementIAMRoleARN     string `config:"management_iam_role_arn"`
-	ManagementECRRegistryID  string `config:"management_ecr_registry_id"`
-	ManagementECRRegistryARN string `config:"management_ecr_registry_arn"`
+	ManagementAccountID      string `config:"management_account_id" validate:"required" preflight:"aws"`
+	ManagementECRRegistryID  string `config:"management_ecr_registry_id" validate:"required" preflight:"aws"`
+	ManagementECRRegistryARN string `config:"management_ecr_registry_arn" validate:"required" preflight:"aws"`
 
 	// GCP management (not required for AWS)
 	ManagementGARRepositoryURL string `config:"management_gar_repository_url"`
@@ -332,6 +332,17 @@ func NewConfig() (*Config, error) {
 	v := validator.New()
 	if err := v.Struct(cfg); err != nil {
 		return nil, fmt.Errorf("unable to validate config: %w", err)
+	}
+
+	return &cfg, nil
+}
+
+// NewPreflightConfig loads configuration without full struct validation.
+// Preflight checks validate their own field subsets.
+func NewPreflightConfig() (*Config, error) {
+	var cfg Config
+	if err := config.LoadInto(nil, &cfg); err != nil {
+		return nil, fmt.Errorf("unable to load config: %w", err)
 	}
 
 	return &cfg, nil
