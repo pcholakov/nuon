@@ -15,7 +15,7 @@ import (
 const vcsTemporalNamespace = "vcs"
 
 // CreateConnectionQueue creates a queue for the given VCS connection with a cron health check
-// emitter that fires every 5 minutes, a fire-once webhook subscription emitter, and enqueues an immediate health check signal.
+// emitter that fires every minute, a fire-once webhook subscription emitter, and enqueues an immediate health check signal.
 func (h *Helpers) CreateConnectionQueue(ctx context.Context, vcsConn *app.VCSConnection) (*app.Queue, error) {
 	q, err := h.queueClient.Create(ctx, &queueclient.CreateQueueRequest{
 		OwnerID:     vcsConn.ID,
@@ -29,7 +29,7 @@ func (h *Helpers) CreateConnectionQueue(ctx context.Context, vcsConn *app.VCSCon
 		return nil, fmt.Errorf("unable to create vcs connection queue: %w", err)
 	}
 
-	// Cron emitter: health check every 5 minutes
+	// Cron emitter: health check every minute
 	if _, err := h.emitterClient.CreateEmitter(ctx, &emitterclient.CreateEmitterRequest{
 		QueueID:      q.ID,
 		Name:         fmt.Sprintf("vcs-connection-%s-health-check", vcsConn.ID),
@@ -60,9 +60,7 @@ func (h *Helpers) CreateConnectionQueue(ctx context.Context, vcsConn *app.VCSCon
 
 	// Enqueue an immediate health check signal
 	if _, err := h.queueClient.EnqueueSignal(ctx, &queueclient.EnqueueSignalRequest{
-		QueueID:   q.ID,
-		OwnerID:   vcsConn.ID,
-		OwnerType: "vcs_connections",
+		QueueID: q.ID,
 		Signal: &healthcheck.Signal{
 			VCSConnectionID: vcsConn.ID,
 		},
