@@ -16,7 +16,7 @@ import (
 type GithubClient interface {
 	GetInstallation(ctx context.Context, installID string) (*github.Installation, error)
 	ListInstallationRepos(ctx context.Context, vcsConn *app.VCSConnection) ([]*github.Repository, error)
-	CreateOrgWebhook(ctx context.Context, vcsConn *app.VCSConnection, webhookURL string) (int64, error)
+	CreateOrgWebhook(ctx context.Context, vcsConn *app.VCSConnection, webhookURL string, secret string) (int64, error)
 }
 
 type Params struct {

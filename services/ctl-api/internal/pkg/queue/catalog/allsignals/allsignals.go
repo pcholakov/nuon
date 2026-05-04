@@ -11,6 +11,7 @@ import (
 	_ "github.com/nuonco/nuon/services/ctl-api/internal/app/apps/signals/v2/branches/fetchcommit"
 	_ "github.com/nuonco/nuon/services/ctl-api/internal/app/apps/signals/v2/branches/run"
 	_ "github.com/nuonco/nuon/services/ctl-api/internal/app/apps/signals/v2/branches/sandboxbuild"
+	_ "github.com/nuonco/nuon/services/ctl-api/internal/app/apps/signals/v2/branches/vcspush"
 	_ "github.com/nuonco/nuon/services/ctl-api/internal/app/apps/signals/v2/created"
 	_ "github.com/nuonco/nuon/services/ctl-api/internal/app/apps/signals/v2/deprovision"
 	_ "github.com/nuonco/nuon/services/ctl-api/internal/app/apps/signals/v2/polldependencies"
@@ -124,6 +125,7 @@ import (
 	_ "github.com/nuonco/nuon/services/ctl-api/internal/app/runners/signals/v2/updateversion"
 
 	// vcs signals
+	_ "github.com/nuonco/nuon/services/ctl-api/internal/app/vcs/signals/v2/connection_event"
 	_ "github.com/nuonco/nuon/services/ctl-api/internal/app/vcs/signals/v2/healthcheck"
 	_ "github.com/nuonco/nuon/services/ctl-api/internal/app/vcs/signals/v2/webhook_subscription"
 

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 
 	"github.com/nuonco/nuon/services/ctl-api/internal/app"
 )
@@ -60,6 +61,15 @@ func (s *service) WriteEvent(ctx *gin.Context) {
 	if err := s.db.WithContext(ctx).Create(&event).Error; err != nil {
 		ctx.Error(fmt.Errorf("unable to store vcs event: %w", err))
 		return
+	}
+
+	// Enqueue signal to process this event (non-blocking — don't fail the webhook response)
+	if err := s.helpers.EnqueueVCSConnectionEvent(ctx, &vcsConn, event.ID); err != nil {
+		s.l.Warn("failed to enqueue vcs connection event signal",
+			zap.String("vcs_connection_id", vcsConnectionID),
+			zap.String("event_id", event.ID),
+			zap.Error(err),
+		)
 	}
 
 	ctx.JSON(http.StatusOK, event)
