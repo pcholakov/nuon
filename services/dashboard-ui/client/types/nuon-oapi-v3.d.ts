@@ -3612,6 +3612,7 @@ export interface components {
       status_description?: string;
       status_v2?: components["schemas"]["app.CompositeStatus"];
       steps?: components["schemas"]["app.InstallActionWorkflowRunStep"][];
+      timeout?: number;
       trigger_type?: components["schemas"]["app.ActionWorkflowTriggerType"];
       triggered_by_id?: string;
       triggered_by_type?: string;
@@ -4253,6 +4254,13 @@ export interface components {
       /** @description For scheduled mode: whether the signal has been fired */
       fired?: boolean;
       id?: string;
+      /**
+       * @description For cron mode: spread emitter ticks deterministically across this window
+       * to avoid thundering-herd when many emitters share a schedule. A hash of the
+       * emitter ID determines each emitter's static offset within the window. Zero
+       * disables jitter (default).
+       */
+      jitter_window?: number;
       last_emitted_at?: string;
       /** @description Emitter mode: "cron" for recurring, "scheduled" for one-shot */
       mode?: components["schemas"]["app.QueueEmitterMode"];
@@ -4317,6 +4325,7 @@ export interface components {
       org_id?: string;
       /** @description Queues holds per-job-group queues created when parallel-runner-jobs feature flag is enabled. */
       queues?: components["schemas"]["app.Queue"][];
+      restart_requested?: boolean;
       runner_group?: components["schemas"]["app.RunnerGroup"];
       runner_group_id?: string;
       runner_job?: components["schemas"]["app.RunnerJob"];
@@ -4559,6 +4568,7 @@ export interface components {
       labels?: string[];
       log_stream_id?: string;
       org_id?: string;
+      restart_requested?: boolean;
       runner_id?: string;
       shutdowns?: components["schemas"]["app.RunnerProcessShutdown"][];
       started_at?: string;
@@ -4774,6 +4784,14 @@ export interface components {
       };
       name?: string;
       owner_id?: string;
+      /**
+       * @description OwnerName is a derived, non-persisted convenience field. It is
+       * populated by activities that need a human-readable owner label
+       * (e.g. workflow lifecycle webhooks) via a small switch on OwnerType
+       * — see PkgWorkflowsFlowGetFlow. Empty unless the loading path
+       * explicitly fills it.
+       */
+      owner_name?: string;
       owner_type?: string;
       plan_only?: boolean;
       /**
@@ -5246,6 +5264,7 @@ export interface components {
       };
       sandbox_mode?: components["schemas"]["plantypes.SandboxMode"];
       steps?: components["schemas"]["plantypes.ActionWorkflowRunStepPlan"][];
+      timeout?: components["schemas"]["time.Duration"];
     };
     "plantypes.ActionWorkflowRunStepPlan": {
       attrs?: {
@@ -6697,6 +6716,11 @@ export interface components {
       error?: string;
       user_error?: boolean;
     };
+    /**
+     * Format: int64
+     * @enum {integer}
+     */
+    "time.Duration": -9223372036854776000 | 9223372036854776000 | 1 | 1000 | 1000000 | 1000000000 | 60000000000 | 3600000000000;
     "types.StringBoolMap": {
       [key: string]: boolean;
     };

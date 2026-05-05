@@ -469,6 +469,7 @@ export type TLabelsResponse = {
   orgs: TOrgOption[]
   page: number
   total_pages: number
+  total_count: number
 }
 
 export type TLogStreamLogsResponse = {
@@ -551,6 +552,37 @@ export type TSignalCatalogDetailResponse = {
 
 export type TRunnersResponse = {
   runners: TSandboxRunnerView[]
+}
+
+export type TAllRunnerView = {
+  runner: TRunner
+  org_name: string
+  group_type: string
+  process_online: boolean
+  version: string
+  process_type: string
+  install_id: string
+  install_name: string
+}
+
+export type TRunnerStatBucket = {
+  label: string
+  value: number
+}
+
+export type TAllRunnerStats = {
+  group_type: TRunnerStatBucket[]
+  version: TRunnerStatBucket[]
+  process_type: TRunnerStatBucket[]
+}
+
+export type TAllRunnersResponse = {
+  runners: TAllRunnerView[]
+  orgs: TOrgOption[]
+  stats: TAllRunnerStats
+  page: number
+  total_pages: number
+  total_count: number
 }
 
 export type TInstallActivityResponse = {
