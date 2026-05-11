@@ -4,7 +4,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,6 +14,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/nuonco/nuon/services/ctl-api/internal/app"
+	"github.com/nuonco/nuon/services/ctl-api/internal/pkg/blobstore"
 )
 
 // verifyGitHubSignature validates the X-Hub-Signature-256 header against the raw request body.
@@ -39,7 +39,7 @@ func verifyGitHubSignature(secret string, signature string, body []byte) bool {
 
 // @ID						WriteWebhookEvent
 // @Summary					Write a VCS webhook event (shared per subscription)
-// @Description				Receives webhook events for a webhook subscription and fans out to all VCS connections sharing that GitHub installation
+// @Description				Receives webhook events for a webhook subscription and creates a GithubEvent for processing
 // @Param					subscription_id	path	string	true	"Webhook Subscription ID"
 // @Tags					vcs
 // @Accept					json
@@ -48,7 +48,7 @@ func verifyGitHubSignature(secret string, signature string, body []byte) bool {
 // @Failure					401	{object}	stderr.ErrResponse
 // @Failure					404	{object}	stderr.ErrResponse
 // @Failure					500	{object}	stderr.ErrResponse
-// @Success					200	{object}	[]app.VCSEvent
+// @Success					200	{object}	app.GithubEvent
 // @Router					/v1/vcs/webhooks/{subscription_id}/events [post]
 func (s *service) WriteWebhookEvent(ctx *gin.Context) {
 	subscriptionID := ctx.Param("subscription_id")
@@ -77,75 +77,53 @@ func (s *service) WriteWebhookEvent(ctx *gin.Context) {
 		return
 	}
 
-	// Parse the payload from the raw body (can't use ShouldBindJSON since body is already consumed).
-	var payload app.VCSEventPayload
-	if err := parsePayload(body, &payload); err != nil {
-		ctx.Error(fmt.Errorf("unable to parse event payload: %w", err))
-		return
-	}
-
 	// Extract event type from GitHub header.
 	eventType := ctx.GetHeader("X-GitHub-Event")
 	if eventType == "" {
 		eventType = "unknown"
 	}
 
-	// Find ALL VCS connections for this GitHub installation (across orgs).
-	var vcsConns []app.VCSConnection
-	if err := s.db.WithContext(ctx).
-		Where("github_install_id = ?", sub.GithubInstallID).
-		Find(&vcsConns).Error; err != nil {
-		ctx.Error(fmt.Errorf("unable to find vcs connections: %w", err))
+	// Extract GitHub installation ID from header.
+	githubInstallID := ctx.GetHeader("X-GitHub-Hook-Installation-Target-ID")
+	if githubInstallID == "" {
+		// Fall back to the subscription's known install ID.
+		githubInstallID = sub.GithubInstallID
+	}
+
+	// Create blob payload for S3 storage.
+	payload := &blobstore.Blob{}
+	payload.Set(string(body))
+	payload.SetContentType("application/json")
+	payload.SetS3Prefix("blobs/github_events")
+
+	// Set blob service on context for the GORM hook.
+	dbCtx := blobstore.WithBlobService(ctx.Request.Context(), s.blobSvc)
+	dbCtx = blobstore.WithBlobWriteEnabled(dbCtx, true)
+
+	event := app.GithubEvent{
+		GithubInstallID: githubInstallID,
+		EventType:       eventType,
+		Payload:         payload,
+		Status: &app.CompositeStatus{
+			CreatedAtTS:            time.Now().Unix(),
+			Status:                 app.StatusSuccess,
+			StatusHumanDescription: fmt.Sprintf("received %s event", eventType),
+		},
+	}
+
+	if err := s.db.WithContext(dbCtx).Create(&event).Error; err != nil {
+		ctx.Error(fmt.Errorf("unable to store github event: %w", err))
 		return
 	}
 
-	if len(vcsConns) == 0 {
-		s.l.Warn("no vcs connections found for webhook subscription",
+	// Enqueue signal to process this event (non-blocking).
+	if err := s.helpers.EnqueueGithubEvent(ctx, &sub, event.ID); err != nil {
+		s.l.Warn("failed to enqueue github event signal",
 			zap.String("subscription_id", subscriptionID),
-			zap.String("github_install_id", sub.GithubInstallID),
+			zap.String("event_id", event.ID),
+			zap.Error(err),
 		)
-		ctx.JSON(http.StatusOK, []app.VCSEvent{})
-		return
 	}
 
-	// Fan out: create a VCSEvent and enqueue signal for each VCS connection.
-	var events []app.VCSEvent
-	for _, vcsConn := range vcsConns {
-		event := app.VCSEvent{
-			OrgID:           vcsConn.OrgID,
-			VCSConnectionID: vcsConn.ID,
-			EventType:       eventType,
-			Payload:         payload,
-			Status: &app.CompositeStatus{
-				CreatedAtTS:            time.Now().Unix(),
-				Status:                 app.StatusSuccess,
-				StatusHumanDescription: fmt.Sprintf("received %s event", eventType),
-			},
-		}
-
-		if err := s.db.WithContext(ctx).Create(&event).Error; err != nil {
-			s.l.Error("unable to store vcs event",
-				zap.String("vcs_connection_id", vcsConn.ID),
-				zap.Error(err),
-			)
-			continue
-		}
-
-		// Enqueue signal to process this event (non-blocking)
-		if err := s.helpers.EnqueueVCSConnectionEvent(ctx, &vcsConn, event.ID); err != nil {
-			s.l.Warn("failed to enqueue vcs connection event signal",
-				zap.String("vcs_connection_id", vcsConn.ID),
-				zap.String("event_id", event.ID),
-				zap.Error(err),
-			)
-		}
-
-		events = append(events, event)
-	}
-
-	ctx.JSON(http.StatusOK, events)
-}
-
-func parsePayload(body []byte, payload *app.VCSEventPayload) error {
-	return json.Unmarshal(body, payload)
+	ctx.JSON(http.StatusOK, event)
 }

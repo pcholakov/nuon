@@ -1,10 +1,8 @@
-package connectionevent
+package githubevent
 
 import (
 	"fmt"
 	"strings"
-
-	"github.com/nuonco/nuon/services/ctl-api/internal/app"
 )
 
 type pushEventInfo struct {
@@ -12,7 +10,7 @@ type pushEventInfo struct {
 	Branch string // "main" - matches ConnectedGithubVCSConfig.Branch
 }
 
-func parsePushEvent(payload app.VCSEventPayload) (*pushEventInfo, error) {
+func parsePushEvent(payload map[string]any) (*pushEventInfo, error) {
 	// Extract ref (e.g. "refs/heads/main")
 	ref, ok := payload["ref"].(string)
 	if !ok || ref == "" {

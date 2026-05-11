@@ -125,7 +125,7 @@ import (
 	_ "github.com/nuonco/nuon/services/ctl-api/internal/app/runners/signals/v2/updateversion"
 
 	// vcs signals
-	_ "github.com/nuonco/nuon/services/ctl-api/internal/app/vcs/signals/v2/connection_event"
+	_ "github.com/nuonco/nuon/services/ctl-api/internal/app/vcs/signals/v2/github_event"
 	_ "github.com/nuonco/nuon/services/ctl-api/internal/app/vcs/signals/v2/healthcheck"
 	_ "github.com/nuonco/nuon/services/ctl-api/internal/app/vcs/signals/v2/webhook_subscription"
 

@@ -9,6 +9,7 @@ import (
 
 	"github.com/nuonco/nuon/services/ctl-api/internal/app/vcs/helpers"
 	"github.com/nuonco/nuon/services/ctl-api/internal/pkg/api"
+	"github.com/nuonco/nuon/services/ctl-api/internal/pkg/blobstore"
 )
 
 type Params struct {
@@ -19,6 +20,7 @@ type Params struct {
 	V        *validator.Validate
 	Helpers  *helpers.Helpers
 	GhClient helpers.GithubClient `optional:"true"`
+	BlobSvc  blobstore.Service
 }
 
 type service struct {
@@ -27,6 +29,7 @@ type service struct {
 	v        *validator.Validate
 	helpers  *helpers.Helpers
 	ghClient helpers.GithubClient
+	blobSvc  blobstore.Service
 }
 
 var _ api.Service = (*service)(nil)
@@ -85,6 +88,7 @@ func New(params Params) *service {
 		db:       params.DB,
 		helpers:  params.Helpers,
 		ghClient: ghClient,
+		blobSvc:  params.BlobSvc,
 	}
 }
 
