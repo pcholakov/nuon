@@ -170,6 +170,7 @@ type Config struct {
 	DBName                       string `config:"db_name" validate:"required"`
 	DBHost                       string `config:"db_host" validate:"required"`
 	DBReplicaHost                string `config:"db_replica_host"`
+	DBReplicaEnabled             bool   `config:"db_replica_enabled"`
 	DBPort                       string `config:"db_port" validate:"required"`
 	DBSSLMode                    string `config:"db_ssl_mode" validate:"required"`
 	DBPassword                   string `config:"db_password"`
