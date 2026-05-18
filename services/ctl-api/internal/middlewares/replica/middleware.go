@@ -57,3 +57,33 @@ func NewWithExclusions(excludedRoutes ...string) *middleware {
 	}
 	return &middleware{excludedRoutes: excluded}
 }
+
+// OptIn is a per-route gin middleware that marks the request context for
+// replica routing. Compose it onto a specific handler when you want a
+// non-GET endpoint to hit the replica, or when relying on the global GET
+// middleware isn't desirable:
+//
+//	api.POST("/v1/things/search", replica.OptIn(), s.SearchThings)
+//	api.GET("/v1/things",         replica.OptIn(), s.ListThings)
+//
+// Safe to combine with the global GET middleware — applying OptIn on top of
+// an already-opted-in request is a no-op.
+func OptIn() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Request = c.Request.WithContext(routing.WithReplica(c.Request.Context()))
+		c.Next()
+	}
+}
+
+// OptOut is a per-route gin middleware that forces this request's reads to
+// the primary, overriding any upstream opt-in (e.g. the global GET
+// middleware). Use on endpoints that read-after-write within the same
+// request:
+//
+//	api.GET("/v1/installs/:install_id", replica.OptOut(), s.GetInstall)
+func OptOut() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Request = c.Request.WithContext(routing.WithoutReplica(c.Request.Context()))
+		c.Next()
+	}
+}

@@ -157,7 +157,11 @@ func New(v *validator.Validate,
 	// ConnPool and the metrics plugin agree on which pool a query targets.
 	// It runs regardless of DBReplicaEnabled so phase-1 metrics show what
 	// would route to the replica before the flag is flipped on.
-	if err := db.Use(&routing.Plugin{}); err != nil {
+	//
+	// ForceACL promotes Allow-listed tables to replica reads even without
+	// an explicit opt-in — used during rollout to turn on per-table
+	// replica reads after a table has been validated.
+	if err := db.Use(&routing.Plugin{ForceACL: cfg.DBReplicaForceACL}); err != nil {
 		return nil, fmt.Errorf("unable to register routing plugin: %w", err)
 	}
 

@@ -14,6 +14,12 @@ type {{$reqType}} struct {
 
 // {{if .Options.WrapperPrefix}}{{.Options.WrapperPrefix}}{{end}}{{.Name | ToPascal}} is a wrapper for the {{.OriginalName}} activity
 func (a {{.Receiver}}) {{if .Options.WrapperPrefix}}{{.Options.WrapperPrefix}}{{end}}{{.Name | ToPascal}}(ctx context.Context, req {{$reqType}}) ({{if .OutputType}}{{.OutputType}}, {{end}}error) {
+	{{- if .Options.ReplicaRead}}
+	// @replica-read: opt this activity into read-replica routing. Any
+	// GORM read using a.db.WithContext(ctx) (or a child ctx) inside the
+	// activity body will target the replica when one is wired up.
+	ctx = routing.WithReplica(ctx)
+	{{- end}}
 	return a.{{.OriginalName}}(ctx, {{range .Params}}req.{{.ExportedName}}, {{end}})
 }
 {{- end}}

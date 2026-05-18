@@ -13,6 +13,7 @@ const (
 type (
 	replicaOptInKey  struct{}
 	replicaOptOutKey struct{}
+	replicaForceKey  struct{}
 	decisionKey      struct{}
 )
 
@@ -41,6 +42,26 @@ func WithoutReplica(ctx context.Context) context.Context {
 // IsWithoutReplica reports whether the context has been forced to the primary.
 func IsWithoutReplica(ctx context.Context) bool {
 	v, _ := ctx.Value(replicaOptOutKey{}).(bool)
+	return v
+}
+
+// WithForceReplica marks the context as an unconditional replica-read. It
+// bypasses the table ACL and overrides WithoutReplica — use only when the
+// caller is certain the query can run on the replica (most often via the
+// routing.Replica / routing.ReplicaScope helpers).
+//
+// The only thing that downgrades this back to primary is the absence of a
+// configured replica pool: ConnPool will silently fall back when no
+// replica *sql.DB is wired up (i.e. when DBReplicaEnabled is false or
+// DBReplicaHost is empty).
+func WithForceReplica(ctx context.Context) context.Context {
+	return context.WithValue(ctx, replicaForceKey{}, true)
+}
+
+// IsForceReplica reports whether the context has been marked for a forced
+// replica read.
+func IsForceReplica(ctx context.Context) bool {
+	v, _ := ctx.Value(replicaForceKey{}).(bool)
 	return v
 }
 
