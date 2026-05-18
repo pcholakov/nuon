@@ -15,15 +15,25 @@ type viewModel interface {
 	ViewVersion() string
 }
 
-// TableACL controls which tables are eligible for replica routing.
+// TableACL controls replica routing per table.
 //
-// The zero value is the "everything allowed" policy: no tables are denied and
-// no allow-list is configured, so every read is replica-eligible (subject to
-// context opt-in / opt-out). This matches the rollout plan of sending all
-// queries to the replica by default.
+//   - Deny: tables that must always read from primary. Wins over
+//     everything, including ForceACL and opt-ins. Use for write-recency
+//     requirements (e.g. auth flows that read-after-write).
 //
-// Deny takes precedence over Allow. When Allow is non-empty, only listed
-// tables are replica-eligible; everything else is forced to primary.
+//   - Allow: tables validated for replica reads. Used by the routing
+//     Plugin's ForceACL mode to auto-route these tables to the replica
+//     without requiring caller opt-in. With ForceACL off, Allow has no
+//     effect — it's a registry of "we trust these tables", waiting to be
+//     activated.
+//
+// Allow is NOT a restrictive whitelist: tables not in Allow are still
+// eligible for replica reads through the normal opt-in paths (HTTP
+// middleware, scope helpers, @replica-read activities, WithReplica).
+// Only Deny restricts.
+//
+// The zero value (nil ACL or empty maps) is "no constraints" — every
+// table is replica-eligible via opt-in, nothing is force-promoted.
 type TableACL struct {
 	Allow map[string]struct{}
 	Deny  map[string]struct{}
@@ -44,20 +54,15 @@ func NewTableACL(allow, deny []string) *TableACL {
 	return acl
 }
 
-// AllowsReplica reports whether queries against the given table may be routed
-// to the replica. A nil ACL or empty table name allows replica routing.
+// AllowsReplica reports whether queries against the given table may be
+// routed to the replica. Only Deny restricts — Allow is a "validated"
+// list used by ForceACL and does not narrow the eligible set.
 func (a *TableACL) AllowsReplica(table string) bool {
 	if a == nil || table == "" {
 		return true
 	}
-	if _, denied := a.Deny[table]; denied {
-		return false
-	}
-	if len(a.Allow) > 0 {
-		_, ok := a.Allow[table]
-		return ok
-	}
-	return true
+	_, denied := a.Deny[table]
+	return !denied
 }
 
 // IsExplicitlyAllowed reports whether the table is a named entry in the

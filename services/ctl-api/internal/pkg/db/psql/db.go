@@ -161,7 +161,10 @@ func New(v *validator.Validate,
 	// ForceACL promotes Allow-listed tables to replica reads even without
 	// an explicit opt-in — used during rollout to turn on per-table
 	// replica reads after a table has been validated.
-	if err := db.Use(&routing.Plugin{ForceACL: cfg.DBReplicaForceACL}); err != nil {
+	if err := db.Use(&routing.Plugin{
+		ACL:      replicaACL(db),
+		ForceACL: cfg.DBReplicaForceACL,
+	}); err != nil {
 		return nil, fmt.Errorf("unable to register routing plugin: %w", err)
 	}
 
