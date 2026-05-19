@@ -20,6 +20,9 @@ import (
 //
 // If no replica is configured, ConnPool transparently falls back to
 // primary — callers don't need to test for it.
+//
+// For composing with other GORM scopes (Scopes(...)), use
+// scopes.WithReplica instead.
 func Replica(db *gorm.DB) *gorm.DB {
 	return db.WithContext(WithForceReplica(stmtContext(db)))
 }
@@ -27,28 +30,11 @@ func Replica(db *gorm.DB) *gorm.DB {
 // Primary returns a *gorm.DB session whose read queries are forced to the
 // primary, overriding any upstream opt-in (request middleware, callers
 // that set WithReplica). Use for read-after-write within the same request.
+//
+// For composing with other GORM scopes (Scopes(...)), use
+// scopes.WithoutReplica instead.
 func Primary(db *gorm.DB) *gorm.DB {
 	return db.WithContext(WithoutReplica(stmtContext(db)))
-}
-
-// ReplicaScope is the same as Replica but in the shape GORM scopes expect:
-//
-//	db.Scopes(routing.ReplicaScope).Find(&rows)
-func ReplicaScope(db *gorm.DB) *gorm.DB {
-	if db.Statement == nil {
-		return Replica(db)
-	}
-	db.Statement.Context = WithForceReplica(stmtContext(db))
-	return db
-}
-
-// PrimaryScope is the same as Primary but in the shape GORM scopes expect.
-func PrimaryScope(db *gorm.DB) *gorm.DB {
-	if db.Statement == nil {
-		return Primary(db)
-	}
-	db.Statement.Context = WithoutReplica(stmtContext(db))
-	return db
 }
 
 func stmtContext(db *gorm.DB) context.Context {
